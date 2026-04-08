@@ -20,6 +20,14 @@ Boluo AI is an Obsidian community plugin for chatting with AI, transforming sele
 - Insert generated content back into the current note
 - Auto-apply note edits for edit-style prompts and keep one-step undo
 
+## Usage
+
+1. Open the plugin settings and add at least one AI provider.
+2. Open the Boluo AI sidebar from the ribbon icon or command palette.
+3. Type a prompt directly, or attach the current note as context before sending.
+4. Optionally select text in the editor to rewrite, polish, translate, or continue it.
+5. Insert the result back into the current note or let the plugin apply supported edits automatically.
+
 ## Plugin Metadata
 
 - Plugin ID: `boluo-ai`
