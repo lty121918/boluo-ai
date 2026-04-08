@@ -234,7 +234,7 @@ export class ChatView extends ItemView {
     const titleWrapEl = brandEl.createDiv({ cls: "obsidian-ai-toolbar-title-wrap" });
     titleWrapEl.createDiv({
       cls: "obsidian-ai-toolbar-title",
-      text: "Obsidian Boluo AI"
+      text: "Boluo AI"
     });
     this.providerMetaEl = titleWrapEl.createDiv({
       cls: "obsidian-ai-provider-meta"

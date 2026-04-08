@@ -95,7 +95,7 @@ export class ObsidianAIAssistantSettingTab extends PluginSettingTab {
       cls: "obsidian-ai-section-label",
       text: "AI Control Room"
     });
-    heroEl.createEl("h2", { text: "Obsidian Boluo AI" });
+    heroEl.createEl("h2", { text: "Boluo AI" });
     heroEl.createDiv({
       cls: "obsidian-ai-settings-hero-meta",
       text: "在这里配置 Provider、默认上下文策略和自动写回行为，让侧边栏保持一套稳定的工作流。"

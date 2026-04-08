@@ -7,9 +7,9 @@
   </a>
 </p>
 
-# Obsidian Boluo AI
+# Boluo AI
 
-Obsidian Boluo AI is an Obsidian community plugin for chatting with AI, transforming selected text, and writing results back into your notes.
+Boluo AI is an Obsidian community plugin for chatting with AI, transforming selected text, and writing results back into your notes.
 
 ## Features
 
@@ -23,5 +23,13 @@ Obsidian Boluo AI is an Obsidian community plugin for chatting with AI, transfor
 ## Plugin Metadata
 
 - Plugin ID: `boluo-ai`
-- Name: `Obsidian Boluo AI`
+- Name: `Boluo AI`
 - Minimum Obsidian version: `1.5.0`
+
+## Disclosures
+
+- Requires network access to user-configured AI provider APIs
+- Requires an API key or account for the AI provider you choose
+- No telemetry
+- No ads
+- Open source

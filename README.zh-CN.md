@@ -7,9 +7,9 @@
   </a>
 </p>
 
-# Obsidian Boluo AI
+# Boluo AI
 
-Obsidian Boluo AI 是一个 Obsidian 社区插件，支持在笔记中与 AI 对话、处理选中文本，并将生成结果直接写回笔记。
+Boluo AI 是一个 Obsidian 社区插件，支持在笔记中与 AI 对话、处理选中文本，并将生成结果直接写回笔记。
 
 ## 功能特性
 
@@ -23,5 +23,13 @@ Obsidian Boluo AI 是一个 Obsidian 社区插件，支持在笔记中与 AI 对
 ## 插件信息
 
 - 插件 ID：`boluo-ai`
-- 插件名称：`Obsidian Boluo AI`
+- 插件名称：`Boluo AI`
 - 最低 Obsidian 版本：`1.5.0`
+
+## 披露说明
+
+- 需要访问你自行配置的 AI 服务接口
+- 需要你自己的 AI 服务 API Key 或账号
+- 不包含遥测
+- 不包含广告
+- 开源
