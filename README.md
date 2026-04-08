@@ -1,3 +1,12 @@
+<p align="right">
+  <a href="./README.md">
+    <img alt="English" src="https://img.shields.io/badge/English-111111?style=for-the-badge&logo=github&logoColor=white">
+  </a>
+  <a href="./README.zh-CN.md">
+    <img alt="简体中文" src="https://img.shields.io/badge/简体中文-f59e0b?style=for-the-badge&logo=github&logoColor=white">
+  </a>
+</p>
+
 # Obsidian Boluo AI
 
 Obsidian Boluo AI is an Obsidian community plugin for chatting with AI, transforming selected text, and writing results back into your notes.
