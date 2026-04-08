@@ -3,7 +3,7 @@
   "name": "Boluo AI",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Chat with AI in Obsidian, edit selected text, and write results back into your notes.",
+  "description": "Chat with AI, edit selected text, and write results back into your notes.",
   "author": "lty",
   "isDesktopOnly": false
 }

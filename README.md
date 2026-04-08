@@ -9,7 +9,7 @@
 
 # Boluo AI
 
-Boluo AI is an Obsidian community plugin for chatting with AI, transforming selected text, and writing results back into your notes.
+Boluo AI is a community plugin for chatting with AI, transforming selected text, and writing results back into your notes.
 
 ## Features
 
