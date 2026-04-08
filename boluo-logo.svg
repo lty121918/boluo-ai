@@ -1,0 +1,20 @@
+<svg width="120" height="140" viewBox="0 0 100 115" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Boluo Pineapple Logo -->
+  <!-- Leaves -->
+  <path d="M50 42C50 42 46 30 44 24C42 19 41 18 43 19C45 20 48 28 50 42Z" fill="#2d9e2d"/>
+  <path d="M50 42C50 42 54 30 56 24C58 19 59 18 57 19C55 20 52 28 50 42Z" fill="#3aaf3a"/>
+  <path d="M50 42C50 42 38 30 32 26C27 23 26 24 29 26C32 28 42 36 50 42Z" fill="#3aaf3a"/>
+  <path d="M50 42C50 42 62 30 68 26C73 23 74 24 71 26C68 28 58 36 50 42Z" fill="#2d9e2d"/>
+  <path d="M50 42C50 42 34 34 26 32C21 31 20 32 24 34C28 36 40 40 50 42Z" fill="#4dbf4d"/>
+  <path d="M50 42C50 42 66 34 74 32C79 31 80 32 76 34C72 36 60 40 50 42Z" fill="#3aaf3a"/>
+  <!-- Body -->
+  <path d="M50 40C33 40 19 54 19 74C19 94 33 108 50 108C67 108 81 94 81 74C81 54 67 40 50 40Z" fill="#fbbf24" stroke="#e5a500" stroke-width="1.5"/>
+  <!-- Texture -->
+  <path d="M27 54Q50 64 73 54" stroke="#e5a500" stroke-width="1" fill="none" opacity="0.5"/>
+  <path d="M22 66Q50 76 78 66" stroke="#e5a500" stroke-width="1" fill="none" opacity="0.5"/>
+  <path d="M21 78Q50 88 79 78" stroke="#e5a500" stroke-width="1" fill="none" opacity="0.5"/>
+  <path d="M25 90Q50 100 75 90" stroke="#e5a500" stroke-width="1" fill="none" opacity="0.5"/>
+  <line x1="37" y1="42" x2="34" y2="106" stroke="#e5a500" stroke-width="0.8" opacity="0.35"/>
+  <line x1="50" y1="40" x2="50" y2="108" stroke="#e5a500" stroke-width="0.8" opacity="0.35"/>
+  <line x1="63" y1="42" x2="66" y2="106" stroke="#e5a500" stroke-width="0.8" opacity="0.35"/>
+</svg>
