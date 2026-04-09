@@ -1,4 +1,5 @@
 import {
+  type App,
   type EditorPosition,
   ItemView,
   MarkdownView,
@@ -89,6 +90,11 @@ interface SelectionAttachment {
   to: EditorPosition;
 }
 
+interface AppSettingsManager {
+  open(): void;
+  openTabById(tabId: string): void;
+}
+
 function createMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -145,7 +151,7 @@ export class ChatView extends ItemView {
     return "messages-square";
   }
 
-  async onOpen(): Promise<void> {
+  onOpen(): Promise<void> {
     this.attachCurrentNote = this.plugin.settings.attachCurrentNoteByDefault;
     this.updateContextFileFromWorkspace();
     this.render();
@@ -175,18 +181,20 @@ export class ChatView extends ItemView {
     });
     this.refreshActiveNoteChip();
     this.scheduleSelectionSync();
+    return Promise.resolve();
   }
 
-  async onClose(): Promise<void> {
+  onClose(): Promise<void> {
     this.cancelCurrentRequest();
     this.clearStatusTimer();
     this.clearSelectionSyncFrame();
     this.messages = [];
     this.messageViews.clear();
     this.containerEl.empty();
+    return Promise.resolve();
   }
 
-  async refreshFromSettings(): Promise<void> {
+  refreshFromSettings(): void {
     if (!this.headerEl) {
       return;
     }
@@ -248,10 +256,7 @@ export class ChatView extends ItemView {
     this.settingsButton.setAttr("title", "打开设置");
     setIcon(this.settingsButton, "settings-2");
     this.settingsButton.addEventListener("click", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (this.app as any).setting.open();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (this.app as any).setting.openTabById(this.plugin.manifest.id);
+      this.openPluginSettings();
     });
 
     this.clearButton = actionsEl.createEl("button");
@@ -289,27 +294,19 @@ export class ChatView extends ItemView {
       cls: "clickable-icon",
       text: "×"
     });
-    this.noteChipRemoveButton.addEventListener("click", async () => {
-      this.attachCurrentNote = false;
-      this.plugin.settings.attachCurrentNoteByDefault = false;
-      await this.plugin.saveSettings();
-      this.refreshActiveNoteChip();
-      this.refreshControls();
+    this.noteChipRemoveButton.addEventListener("click", () => {
+      void this.setCurrentNoteAttachment(false);
     });
     this.attachNoteButton = this.noteContextRowEl.createEl("button", {
       cls: "obsidian-ai-attach-note-button obsidian-ai-button-hidden",
       text: "附带当前笔记"
     });
-    this.attachNoteButton.addEventListener("click", async () => {
+    this.attachNoteButton.addEventListener("click", () => {
       if (!this.getContextFile()) {
         return;
       }
 
-      this.attachCurrentNote = true;
-      this.plugin.settings.attachCurrentNoteByDefault = true;
-      await this.plugin.saveSettings();
-      this.refreshActiveNoteChip();
-      this.refreshControls();
+      void this.setCurrentNoteAttachment(true);
     });
 
     this.selectionChipEl = this.noteContextRowEl.createDiv({
@@ -374,7 +371,7 @@ export class ChatView extends ItemView {
     });
     this.cancelButton.addEventListener("click", () => this.cancelCurrentRequest());
     this.sendButton = actionsEl.createEl("button", {
-      cls: "obsidian-ai-send-button",
+      cls: "obsidian-ai-send-button"
     });
     this.sendButton.setAttr("aria-label", "发送");
     this.sendButton.setAttr("title", "发送");
@@ -408,11 +405,11 @@ export class ChatView extends ItemView {
       );
     } else {
       this.providerMetaEl.setText("");
-      this.composerMetaEl.setText("先在设置中配置可用的 Provider");
+      this.composerMetaEl.setText("先在设置中配置可用的服务接口");
     }
 
     if (!provider) {
-      this.inputEl.placeholder = "先在设置中添加至少一个 Provider";
+      this.inputEl.placeholder = "先在设置中添加至少一个服务接口";
     } else if (provider.model.trim().length === 0) {
       this.inputEl.placeholder = "先填写模型名，再开始发送";
     } else {
@@ -495,7 +492,7 @@ export class ChatView extends ItemView {
   ): Promise<void> {
     const provider = this.plugin.getActiveProvider();
     if (!provider) {
-      new Notice("请先在设置中配置 Provider。");
+      new Notice("请先在设置中配置服务接口。");
       return;
     }
 
@@ -506,7 +503,7 @@ export class ChatView extends ItemView {
 
     this.sending = true;
     this.refreshControls();
-    this.setStatus(`${options.pendingStatus} 当前 Provider：${provider.name}`, "info");
+    this.setStatus(`${options.pendingStatus} 当前接口：${provider.name}`, "info");
 
     const noteContext = await this.getAttachedNoteContext();
     const selectionAttachment = this.getSelectionAttachment();
@@ -751,7 +748,7 @@ export class ChatView extends ItemView {
     new Notice("已复制到剪贴板。");
   }
 
-  private async insertMessageIntoNote(message: RenderableMessage): Promise<void> {
+  private insertMessageIntoNote(message: RenderableMessage): void {
     const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
     const editor = markdownView?.editor;
 
@@ -1230,8 +1227,12 @@ export class ChatView extends ItemView {
       return;
     }
 
-    this.inputEl.style.height = "auto";
-    this.inputEl.style.height = `${Math.min(this.inputEl.scrollHeight, 220)}px`;
+    this.inputEl.setCssProps({
+      "--obsidian-ai-input-height": "auto"
+    });
+    this.inputEl.setCssProps({
+      "--obsidian-ai-input-height": `${Math.min(this.inputEl.scrollHeight, 220)}px`
+    });
   }
 
   private getSelectionAttachment(): SelectionAttachment | null {
@@ -1309,4 +1310,29 @@ export class ChatView extends ItemView {
     await this.app.workspace.revealLeaf(leaf);
   }
 
+  private getSettingsManager(): AppSettingsManager | null {
+    const appWithSettings = this.app as App & {
+      setting?: AppSettingsManager;
+    };
+    return appWithSettings.setting ?? null;
+  }
+
+  private openPluginSettings(): void {
+    const settingsManager = this.getSettingsManager();
+    if (!settingsManager) {
+      new Notice("无法打开插件设置。");
+      return;
+    }
+
+    settingsManager.open();
+    settingsManager.openTabById(this.plugin.manifest.id);
+  }
+
+  private async setCurrentNoteAttachment(attach: boolean): Promise<void> {
+    this.attachCurrentNote = attach;
+    this.plugin.settings.attachCurrentNoteByDefault = attach;
+    await this.plugin.saveSettings();
+    this.refreshActiveNoteChip();
+    this.refreshControls();
+  }
 }

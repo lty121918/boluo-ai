@@ -1,4 +1,4 @@
-import { App, Modal } from "obsidian";
+import { App, Modal, Setting } from "obsidian";
 
 type ProcessingStatusKind = "info" | "error";
 
@@ -28,7 +28,7 @@ export class ProcessingModal extends Modal {
     const headingEl = contentEl.createDiv({ cls: "obsidian-ai-modal-heading" });
     headingEl.createDiv({
       cls: "obsidian-ai-section-label",
-      text: "Live Processing"
+      text: "Live processing"
     });
 
     this.statusEl = contentEl.createDiv({
@@ -39,11 +39,14 @@ export class ProcessingModal extends Modal {
     const compareEl = contentEl.createDiv({ cls: "obsidian-ai-result-compare" });
 
     const originalEl = compareEl.createDiv({ cls: "obsidian-ai-result-panel" });
-    originalEl.createEl("h4", { text: "原文" });
+    new Setting(originalEl).setName("原文").setHeading().settingEl.addClass("obsidian-ai-panel-heading");
     originalEl.createEl("pre", { text: this.options.originalText });
 
     const outputPanelEl = compareEl.createDiv({ cls: "obsidian-ai-result-panel" });
-    outputPanelEl.createEl("h4", { text: "处理中" });
+    new Setting(outputPanelEl)
+      .setName("处理中")
+      .setHeading()
+      .settingEl.addClass("obsidian-ai-panel-heading");
     this.outputEl = outputPanelEl.createEl("pre", {
       text: "正在等待模型返回..."
     });

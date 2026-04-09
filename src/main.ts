@@ -1,7 +1,6 @@
 import {
   Editor,
   type EditorPosition,
-  MarkdownView,
   Menu,
   Modal,
   Notice,
@@ -108,8 +107,8 @@ export default class ObsidianAIAssistantPlugin extends Plugin {
     });
   }
 
-  async onunload(): Promise<void> {
-    await this.detachChatLeaves();
+  onunload(): void {
+    this.detachChatLeaves();
   }
 
   getActiveProvider() {
@@ -138,7 +137,7 @@ export default class ObsidianAIAssistantPlugin extends Plugin {
     }
 
     await this.saveData(this.settings);
-    await this.refreshChatViews();
+    this.refreshChatViews();
   }
 
   async streamChat(request: ChatRequest, handlers: StreamHandlers): Promise<string> {
@@ -227,7 +226,7 @@ export default class ObsidianAIAssistantPlugin extends Plugin {
   ): Promise<void> {
     const provider = this.getActiveProvider();
     if (!provider) {
-      new Notice("请先在插件设置中配置 Provider。");
+      new Notice("请先在插件设置中配置服务接口。");
       return;
     }
 
@@ -355,22 +354,22 @@ export default class ObsidianAIAssistantPlugin extends Plugin {
     await this.app.workspace.revealLeaf(leaf);
   }
 
-  private async detachChatLeaves(): Promise<void> {
+  private detachChatLeaves(): void {
     const leaves = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE);
-    await Promise.all(leaves.map((leaf) => leaf.detach()));
+    for (const leaf of leaves) {
+      leaf.detach();
+    }
   }
 
-  private async refreshChatViews(): Promise<void> {
+  private refreshChatViews(): void {
     const leaves = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE);
 
-    await Promise.all(
-      leaves.map(async (leaf: WorkspaceLeaf) => {
-        const view = leaf.view;
-        if (view instanceof ChatView) {
-          await view.refreshFromSettings();
-        }
-      })
-    );
+    for (const leaf of leaves) {
+      const view = leaf.view;
+      if (view instanceof ChatView) {
+        view.refreshFromSettings();
+      }
+    }
   }
 
   private isAbortError(error: unknown): boolean {

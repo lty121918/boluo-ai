@@ -1,4 +1,11 @@
+import { requestUrl, type RequestUrlResponse } from "obsidian";
 import type { ChatMessage, ChatRequest, StreamHandlers } from "./types";
+
+type JsonRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null;
+}
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");
@@ -23,49 +30,91 @@ function splitSystemMessages(messages: ChatMessage[]): { system: string; convers
   };
 }
 
-async function readErrorMessage(response: Response): Promise<string> {
-  const fallback = `${response.status} ${response.statusText}`;
+function extractErrorMessage(payload: unknown): string | null {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const directMessage = payload.message;
+  if (typeof directMessage === "string" && directMessage.trim()) {
+    return directMessage.trim();
+  }
+
+  const detail = payload.detail;
+  if (typeof detail === "string" && detail.trim()) {
+    return detail.trim();
+  }
+
+  const error = payload.error;
+  if (typeof error === "string" && error.trim()) {
+    return error.trim();
+  }
+
+  if (isRecord(error) && typeof error.message === "string" && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  return null;
+}
+
+function readErrorMessage(response: RequestUrlResponse): string {
+  const fallback = `${response.status}`;
+  const text = response.text;
+
+  if (!text) {
+    return fallback;
+  }
 
   try {
-    const text = await response.text();
-    if (!text) {
-      return fallback;
+    const message = extractErrorMessage(JSON.parse(text) as unknown);
+    if (message) {
+      return message;
     }
-
-    try {
-      const payload = JSON.parse(text);
-      const message =
-        payload?.error?.message ??
-        payload?.message ??
-        payload?.detail ??
-        payload?.error;
-
-      if (typeof message === "string" && message.trim()) {
-        return message.trim();
-      }
-    } catch {
-      // Fall back to the raw text when the body is not JSON.
-    }
-
-    return text;
   } catch {
-    return fallback;
+    // Fall back to the raw text when the body is not JSON.
+  }
+
+  return text;
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new DOMException("The request was aborted.", "AbortError");
   }
 }
 
-function extractTextDelta(payload: any): string {
-  if (payload?.type === "content_block_delta") {
-    return typeof payload?.delta?.text === "string" ? payload.delta.text : "";
+function extractCompletionText(payload: unknown): string {
+  if (!isRecord(payload)) {
+    return "";
   }
 
-  if (payload?.type === "message") {
-    const content = payload?.content;
-    if (Array.isArray(content)) {
-      return content
-        .map((part) => (part?.type === "text" && typeof part?.text === "string" ? part.text : ""))
-        .join("");
-    }
+  if (payload.type === "content_block_delta" && isRecord(payload.delta)) {
+    return typeof payload.delta.text === "string" ? payload.delta.text : "";
   }
+
+  if (Array.isArray(payload.content)) {
+    return payload.content
+      .map((part) => {
+        if (!isRecord(part)) {
+          return "";
+        }
+
+        return part.type === "text" && typeof part.text === "string" ? part.text : "";
+      })
+      .join("");
+  }
+
+  if (payload.type === "message" && Array.isArray(payload.content)) {
+    return payload.content
+      .map((part) => {
+        if (!isRecord(part)) {
+          return "";
+        }
+
+        return part.type === "text" && typeof part.text === "string" ? part.text : "";
+      })
+      .join("");
+    }
 
   return "";
 }
@@ -75,15 +124,17 @@ export async function streamClaudeChat(
   handlers: StreamHandlers
 ): Promise<string> {
   const { system, conversation } = splitSystemMessages(request.messages);
-  const response = await fetch(`${trimTrailingSlash(request.provider.baseUrl)}/messages`, {
+
+  throwIfAborted(request.signal);
+
+  const response = await requestUrl({
+    url: `${trimTrailingSlash(request.provider.baseUrl)}/messages`,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": request.provider.apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
+      "anthropic-version": "2023-06-01"
     },
-    signal: request.signal,
     body: JSON.stringify({
       model: request.provider.model,
       system: system || undefined,
@@ -93,69 +144,19 @@ export async function streamClaudeChat(
       })),
       temperature: request.temperature,
       max_tokens: request.maxTokens,
-      stream: true
-    })
+      stream: false
+    }),
+    throw: false
   });
 
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
+  throwIfAborted(request.signal);
+
+  if (response.status >= 400) {
+    throw new Error(readErrorMessage(response));
   }
 
-  if (!response.body) {
-    const json = await response.json();
-    const text = extractTextDelta(json);
-    handlers.onToken(text);
-    handlers.onComplete?.(text);
-    return text;
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let fullText = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    buffer += decoder.decode(value, { stream: !done });
-
-    const chunks = buffer.split("\n\n");
-    buffer = chunks.pop() ?? "";
-    const pendingChunks = done && buffer ? [...chunks, buffer] : chunks;
-
-    if (done) {
-      buffer = "";
-    }
-
-    for (const chunk of pendingChunks) {
-      const lines = chunk.split(/\r?\n/);
-      let data = "";
-
-      for (const line of lines) {
-        if (line.startsWith("data:")) {
-          data += line.slice(5).trim();
-        }
-      }
-
-      if (!data) {
-        continue;
-      }
-
-      const payload = JSON.parse(data);
-      const token = extractTextDelta(payload);
-
-      if (!token) {
-        continue;
-      }
-
-      fullText += token;
-      handlers.onToken(token);
-    }
-
-    if (done) {
-      break;
-    }
-  }
-
-  handlers.onComplete?.(fullText);
-  return fullText;
+  const text = extractCompletionText(response.json as unknown);
+  handlers.onToken(text);
+  handlers.onComplete?.(text);
+  return text;
 }

@@ -62,7 +62,7 @@ function createProvider(type: ProviderType): ProviderConfig {
 
   return {
     id: crypto.randomUUID(),
-    name: isClaude ? "Claude" : "OpenAI Compatible",
+    name: isClaude ? "Claude" : "OpenAI 兼容接口",
     type,
     baseUrl: isClaude ? "https://api.anthropic.com/v1" : "https://api.openai.com/v1",
     apiKey: "",
@@ -93,20 +93,23 @@ export class ObsidianAIAssistantSettingTab extends PluginSettingTab {
     const heroEl = containerEl.createDiv({ cls: "obsidian-ai-settings-hero" });
     heroEl.createDiv({
       cls: "obsidian-ai-section-label",
-      text: "AI Control Room"
+      text: "配置"
     });
-    heroEl.createEl("h2", { text: "Boluo AI" });
-    heroEl.createDiv({
-      cls: "obsidian-ai-settings-hero-meta",
-      text: "在这里配置 Provider、默认上下文策略和自动写回行为，让侧边栏保持一套稳定的工作流。"
-    });
+    new Setting(heroEl)
+      .setName("Boluo AI")
+      .setDesc("在这里配置服务接口、默认上下文策略和自动写回行为，让侧边栏保持一套稳定的工作流。")
+      .setHeading()
+      .settingEl.addClass("obsidian-ai-settings-main-heading");
 
     const generalSectionEl = containerEl.createDiv({ cls: "obsidian-ai-settings-section" });
     generalSectionEl.createDiv({
       cls: "obsidian-ai-section-label",
-      text: "General"
+      text: "通用设置"
     });
-    generalSectionEl.createEl("h3", { text: "默认工作方式" });
+    new Setting(generalSectionEl)
+      .setName("默认工作方式")
+      .setHeading()
+      .settingEl.addClass("obsidian-ai-settings-section-heading");
 
     new Setting(generalSectionEl)
       .setName("默认附带当前笔记")
@@ -114,15 +117,15 @@ export class ObsidianAIAssistantSettingTab extends PluginSettingTab {
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.attachCurrentNoteByDefault)
-          .onChange(async (value) => {
+          .onChange((value) => {
             this.plugin.settings.attachCurrentNoteByDefault = value;
-            await this.plugin.saveSettings();
+            void this.plugin.saveSettings();
           });
       });
 
     new Setting(generalSectionEl)
-      .setName("当前默认 Provider")
-      .setDesc("新打开侧边栏时使用的 Provider。")
+      .setName("当前默认接口")
+      .setDesc("新打开侧边栏时使用的服务接口。")
       .addDropdown((dropdown) => {
         for (const provider of this.plugin.settings.providers) {
           dropdown.addOption(provider.id, provider.name);
@@ -131,10 +134,9 @@ export class ObsidianAIAssistantSettingTab extends PluginSettingTab {
         const activeProviderId =
           this.plugin.settings.activeProviderId || this.plugin.settings.providers[0]?.id || "";
 
-        dropdown.setValue(activeProviderId).onChange(async (value) => {
+        dropdown.setValue(activeProviderId).onChange((value) => {
           this.plugin.settings.activeProviderId = value;
-          await this.plugin.saveSettings();
-          this.display();
+          void this.saveAndRedisplay();
         });
       });
 
@@ -144,43 +146,36 @@ export class ObsidianAIAssistantSettingTab extends PluginSettingTab {
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.autoApplyCurrentNoteEdits)
-          .onChange(async (value) => {
+          .onChange((value) => {
             this.plugin.settings.autoApplyCurrentNoteEdits = value;
-            await this.plugin.saveSettings();
+            void this.plugin.saveSettings();
           });
       });
 
     const addButtonsEl = containerEl.createDiv({ cls: "obsidian-ai-settings-actions" });
     addButtonsEl.createDiv({
       cls: "obsidian-ai-section-label",
-      text: "Providers"
+      text: "提供方"
     });
-    addButtonsEl.createEl("h3", { text: "Provider 列表" });
+    new Setting(addButtonsEl)
+      .setName("接口列表")
+      .setHeading()
+      .settingEl.addClass("obsidian-ai-settings-section-heading");
 
     const buttonRow = addButtonsEl.createDiv({ cls: "obsidian-ai-settings-button-row" });
     const addOpenAIButton = buttonRow.createEl("button", {
       cls: "mod-cta",
-      text: "添加 OpenAI 兼容 Provider"
+      text: "添加 OpenAI 兼容接口"
     });
-    addOpenAIButton.addEventListener("click", async () => {
-      this.plugin.settings.providers.push(createProvider("openai"));
-      if (!this.plugin.settings.activeProviderId) {
-        this.plugin.settings.activeProviderId = this.plugin.settings.providers[0].id;
-      }
-      await this.plugin.saveSettings();
-      this.display();
+    addOpenAIButton.addEventListener("click", () => {
+      void this.addProvider("openai");
     });
 
     const addClaudeButton = buttonRow.createEl("button", {
-      text: "添加 Claude Provider"
+      text: "添加 Claude 接口"
     });
-    addClaudeButton.addEventListener("click", async () => {
-      this.plugin.settings.providers.push(createProvider("claude"));
-      if (!this.plugin.settings.activeProviderId) {
-        this.plugin.settings.activeProviderId = this.plugin.settings.providers[0].id;
-      }
-      await this.plugin.saveSettings();
-      this.display();
+    addClaudeButton.addEventListener("click", () => {
+      void this.addProvider("claude");
     });
 
     for (const provider of this.plugin.settings.providers) {
@@ -190,35 +185,37 @@ export class ObsidianAIAssistantSettingTab extends PluginSettingTab {
 
   private renderProviderSection(containerEl: HTMLElement, provider: ProviderConfig): void {
     const cardEl = containerEl.createDiv({ cls: "obsidian-ai-provider-card" });
-    cardEl.createEl("h3", { text: provider.name });
+    new Setting(cardEl)
+      .setName(provider.name)
+      .setHeading()
+      .settingEl.addClass("obsidian-ai-provider-heading");
 
     new Setting(cardEl)
       .setName("显示名称")
       .setDesc("用于设置面板和侧边栏顶部展示。")
       .addText((text) => {
-        text.setValue(provider.name).onChange(async (value) => {
-          provider.name = value.trim() || "未命名 Provider";
-          await this.plugin.saveSettings();
+        text.setValue(provider.name).onChange((value) => {
+          provider.name = value.trim() || "未命名接口";
+          void this.plugin.saveSettings();
         });
       });
 
     new Setting(cardEl)
-      .setName("API 类型")
+      .setName("接口类型")
       .setDesc("OpenAI 兼容接口或 Claude 原生接口。")
       .addDropdown((dropdown) => {
         dropdown
           .addOption("openai", "OpenAI 兼容")
           .addOption("claude", "Claude")
           .setValue(provider.type)
-          .onChange(async (value) => {
+          .onChange((value) => {
             const nextType = value as ProviderType;
             provider.type = nextType;
             provider.baseUrl =
               nextType === "claude"
                 ? "https://api.anthropic.com/v1"
                 : "https://api.openai.com/v1";
-            await this.plugin.saveSettings();
-            this.display();
+            void this.saveAndRedisplay();
           });
       });
 
@@ -231,33 +228,32 @@ export class ObsidianAIAssistantSettingTab extends PluginSettingTab {
       const button = presetsRow.createEl("button", {
         text: preset.label
       });
-      button.addEventListener("click", async () => {
+      button.addEventListener("click", () => {
         this.applyPreset(provider, preset);
-        await this.plugin.saveSettings();
-        this.display();
+        void this.saveAndRedisplay();
       });
     }
 
     new Setting(cardEl)
-      .setName("Base URL")
+      .setName("接口地址")
       .setDesc("例如 https://api.openai.com/v1 或 http://localhost:11434/v1")
       .addText((text) => {
         text.inputEl.addClass("obsidian-ai-wide-input");
-        text.setValue(provider.baseUrl).onChange(async (value) => {
+        text.setValue(provider.baseUrl).onChange((value) => {
           provider.baseUrl = value.trim();
-          await this.plugin.saveSettings();
+          void this.plugin.saveSettings();
         });
       });
 
     new Setting(cardEl)
-      .setName("API Key")
+      .setName("API 密钥")
       .setDesc("本地 Ollama 等无需密钥的服务可以留空。")
       .addText((text) => {
         text.inputEl.type = "password";
         text.inputEl.addClass("obsidian-ai-wide-input");
-        text.setValue(provider.apiKey).onChange(async (value) => {
+        text.setValue(provider.apiKey).onChange((value) => {
           provider.apiKey = value.trim();
-          await this.plugin.saveSettings();
+          void this.plugin.saveSettings();
         });
       });
 
@@ -266,55 +262,72 @@ export class ObsidianAIAssistantSettingTab extends PluginSettingTab {
       .setDesc("例如 qwen-plus、moonshot-v1-8k、claude-sonnet-4-20250514。")
       .addText((text) => {
         text.inputEl.addClass("obsidian-ai-wide-input");
-        text.setValue(provider.model).onChange(async (value) => {
+        text.setValue(provider.model).onChange((value) => {
           provider.model = value.trim();
-          await this.plugin.saveSettings();
+          void this.plugin.saveSettings();
         });
       });
 
     new Setting(cardEl)
-      .setName("Temperature")
+      .setName("采样温度")
       .setDesc("0 到 1，默认 0.7。")
       .addSlider((slider) => {
         slider
           .setLimits(0, 1, 0.1)
           .setValue(provider.temperature)
           .setDynamicTooltip()
-          .onChange(async (value) => {
+          .onChange((value) => {
             provider.temperature = value;
-            await this.plugin.saveSettings();
+            void this.plugin.saveSettings();
           });
       });
 
     new Setting(cardEl)
-      .setName("Max Tokens")
+      .setName("最大 token 数")
       .setDesc("控制输出上限。")
       .addText((text) => {
         text.inputEl.type = "number";
-        text.setValue(String(provider.maxTokens)).onChange(async (value) => {
+        text.setValue(String(provider.maxTokens)).onChange((value) => {
           const parsed = Number.parseInt(value, 10);
           provider.maxTokens = Number.isFinite(parsed) && parsed > 0 ? parsed : 2048;
-          await this.plugin.saveSettings();
+          void this.plugin.saveSettings();
         });
       });
 
     new Setting(cardEl)
-      .setName("删除 Provider")
+      .setName("删除接口")
       .setDesc("移除当前配置。")
       .addButton((button) => {
-        button.setWarning().setButtonText("删除").onClick(async () => {
-          this.plugin.settings.providers = this.plugin.settings.providers.filter(
-            (item) => item.id !== provider.id
-          );
-
-          if (this.plugin.settings.activeProviderId === provider.id) {
-            this.plugin.settings.activeProviderId = this.plugin.settings.providers[0]?.id ?? "";
-          }
-
-          await this.plugin.saveSettings();
-          this.display();
+        button.setWarning().setButtonText("删除").onClick(() => {
+          void this.removeProvider(provider.id);
         });
       });
+  }
+
+  private async addProvider(type: ProviderType): Promise<void> {
+    this.plugin.settings.providers.push(createProvider(type));
+    if (!this.plugin.settings.activeProviderId) {
+      this.plugin.settings.activeProviderId = this.plugin.settings.providers[0]?.id ?? "";
+    }
+
+    await this.saveAndRedisplay();
+  }
+
+  private async removeProvider(providerId: string): Promise<void> {
+    this.plugin.settings.providers = this.plugin.settings.providers.filter(
+      (item) => item.id !== providerId
+    );
+
+    if (this.plugin.settings.activeProviderId === providerId) {
+      this.plugin.settings.activeProviderId = this.plugin.settings.providers[0]?.id ?? "";
+    }
+
+    await this.saveAndRedisplay();
+  }
+
+  private async saveAndRedisplay(): Promise<void> {
+    await this.plugin.saveSettings();
+    this.display();
   }
 
   private applyPreset(provider: ProviderConfig, preset: ProviderPreset): void {

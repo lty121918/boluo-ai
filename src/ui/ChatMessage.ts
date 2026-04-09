@@ -124,10 +124,10 @@ export class ChatMessageView {
     }
 
     if (this.message.role === "user") {
-      return "You";
+      return "你";
     }
 
-    return "Context";
+    return "上下文";
   }
 
   private getFooterMeta(): string {

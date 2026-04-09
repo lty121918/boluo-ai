@@ -1,4 +1,4 @@
-import { App, Modal } from "obsidian";
+import { App, Modal, Setting } from "obsidian";
 
 interface ResultModalOptions {
   title: string;
@@ -23,7 +23,7 @@ export class ResultModal extends Modal {
     const headingEl = contentEl.createDiv({ cls: "obsidian-ai-modal-heading" });
     headingEl.createDiv({
       cls: "obsidian-ai-section-label",
-      text: "Review Result"
+      text: "Review result"
     });
 
     const summaryEl = headingEl.createDiv({ cls: "obsidian-ai-result-summary" });
@@ -34,11 +34,14 @@ export class ResultModal extends Modal {
     const compareEl = contentEl.createDiv({ cls: "obsidian-ai-result-compare" });
 
     const originalEl = compareEl.createDiv({ cls: "obsidian-ai-result-panel" });
-    originalEl.createEl("h4", { text: "原文" });
+    new Setting(originalEl).setName("原文").setHeading().settingEl.addClass("obsidian-ai-panel-heading");
     originalEl.createEl("pre", { text: this.options.originalText });
 
     const resultEl = compareEl.createDiv({ cls: "obsidian-ai-result-panel" });
-    resultEl.createEl("h4", { text: "AI 结果" });
+    new Setting(resultEl)
+      .setName("AI 结果")
+      .setHeading()
+      .settingEl.addClass("obsidian-ai-panel-heading");
     resultEl.createEl("pre", { text: this.options.resultText });
 
     const actionsEl = contentEl.createDiv({ cls: "obsidian-ai-result-actions" });
@@ -66,9 +69,8 @@ export class ResultModal extends Modal {
       text: "复制"
     });
     copyButton.disabled = resultLength === 0;
-    copyButton.addEventListener("click", async () => {
-      await this.options.onCopy();
-      this.close();
+    copyButton.addEventListener("click", () => {
+      void this.copyAndClose();
     });
 
     const cancelButton = actionsEl.createEl("button", {
@@ -79,5 +81,10 @@ export class ResultModal extends Modal {
 
   onClose(): void {
     this.contentEl.empty();
+  }
+
+  private async copyAndClose(): Promise<void> {
+    await this.options.onCopy();
+    this.close();
   }
 }
